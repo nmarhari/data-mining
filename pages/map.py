@@ -3,56 +3,75 @@ from dash import html
 import pandas as pd
 from sklearn.cluster import KMeans
 import folium
+import sys
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+module_dir = os.path.join(current_dir, '../', 'functions')
+sys.path.append(module_dir)
+# print(sys.path)
+from traffic_fetcher import fetch_traffic_data
 
 # Register this page with Dash Pages
 dash.register_page(__name__, path="/map")
 
-# Sample traffic data
-traffic_data = pd.DataFrame({
-    'latitude': [40.712776, 34.052235, 41.878113, 29.760427, 39.739235],
-    'longitude': [-74.005974, -118.243683, -87.629799, -95.369804, -104.990250],
-    'congestion_level': [0.9, 0.7, 0.8, 0.6, 0.5]
-})
+bounding_box = "13.08836,52.33812,13.761,52.6755"
+traffic_data = fetch_traffic_data(bounding_box)
 
-# Apply clustering
-kmeans = KMeans(n_clusters=2, random_state=0)
-traffic_data['cluster'] = kmeans.fit_predict(traffic_data[['latitude', 'longitude']])
-print(traffic_data['cluster'].unique())
-# Generate the Folium map
-def create_map(data):
-    # Initialize the map
-    m = folium.Map(location=[40.712776, -74.005974], zoom_start=4)
+if not traffic_data.empty:
+    # Refine clustering by including more traffic-relevant features
+    kmeans = KMeans(n_clusters=3, random_state=0)
+    traffic_data['cluster'] = kmeans.fit_predict(traffic_data[['lat', 'lng', 'jam_factor']])
 
-    # Define colors explicitly for two clusters
-    cluster_colors = {0: 'red', 1: 'blue'}
+    # Define colors based on Jam Factor
+    def get_color(jam_factor):
+        if jam_factor <= 3:
+            return 'green'  # Low congestion
+        elif jam_factor <= 7:
+            return 'orange'  # Medium congestion
+        else:
+            return 'red'  # High congestion
 
-    # Add clustered points to the map
-    for _, row in data.iterrows():
-        folium.CircleMarker(
-            location=[row['latitude'], row['longitude']],
-            radius=10,
-            color=cluster_colors[row['cluster']],  # Use the cluster_colors dictionary
-            fill=True,
-            fill_opacity=0.7,
-            popup=f"Cluster: {row['cluster']}\nCongestion: {row['congestion_level']}"
-        ).add_to(m)
+    # Generate the Folium map
+    def create_map(data):
+        # Initialize the map
+        m = folium.Map(location=[52.5200, 13.4050], zoom_start=10)
 
-    return m._repr_html_()
+        # Add traffic data points to the map
+        for _, row in data.iterrows():
+            color = get_color(row['jam_factor'])  # Get color based on Jam Factor
+            folium.CircleMarker(
+                location=[row['lat'], row['lng']],
+                radius=10,
+                color=color,
+                fill=True,
+                fill_opacity=0.7,
+                popup=(
+                    f"Location: {row['description']}<br>"
+                    f"Speed: {row['speed']} km/h<br>"
+                    f"Free Flow Speed: {row['free_flow_speed']} km/h<br>"
+                    f"Jam Factor: {row['jam_factor']}<br>"
+                    f"Cluster: {row['cluster']}"
+                )
+            ).add_to(m)
 
-# Map as an HTML iframe
-map_html = create_map(traffic_data)
+        return m._repr_html_()
+
+    # Map as an HTML iframe
+    map_html = create_map(traffic_data)
+else:
+    map_html = "<h3>No traffic data available for the selected area.</h3>"
 
 # Layout for the map page
 layout = html.Div(
     [
-        html.H1("Traffic Clustering Map", className="text-center my-3"),
+        html.H1("Real-Time Traffic Clustering Map", className="text-center my-3"),
         html.Div(
             html.Iframe(
                 srcDoc=map_html,
                 width="100%",
-                height="600"
+                height="750"
             ),
-            style={"margin": "auto", "width": "80%"}
+            style={"margin": "auto", "width": "95%", "height": "75%"}
         )
-    ]
+    ],
 )
