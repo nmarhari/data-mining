@@ -41,7 +41,7 @@ if not traffic_data.empty:
             color = get_color(row['jam_factor'])  # Get color based on Jam Factor
             folium.CircleMarker(
                 location=[row['lat'], row['lng']],
-                radius=10,
+                radius=2,
                 color=color,
                 fill=True,
                 fill_opacity=0.7,
