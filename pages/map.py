@@ -64,7 +64,9 @@ else:
 # Layout for the map page
 layout = html.Div(
     [
-        html.H1("Real-Time Traffic Clustering Map", className="text-center my-3"),
+        html.H1([
+            html.A(id='text-center my3', children='Data Mining Techniques Group 5', href="/", style={"text-decoration": "none", "color": "white"})
+        ], style={"text-decoration": "none"}),
         html.Div(
             html.Iframe(
                 srcDoc=map_html,
