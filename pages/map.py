@@ -161,7 +161,7 @@ layout = html.Div(
                 dcc.Checklist(
                     id="gray-points-toggle",
                     options=[{"label": "Show Gray Points (Noise)", "value": "show_gray"}],
-                    value=["show_gray"],  # default to showing noise points
+                    value=[],  # default to not showing noise points
                     style={"margin": "auto", "text-align": "center"}
                 )
             ],
