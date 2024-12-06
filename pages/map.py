@@ -10,14 +10,14 @@ import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 module_dir = os.path.join(current_dir, '../', 'functions')
 sys.path.append(module_dir)
-from traffic_fetcher import fetch_traffic_data  # Assuming traffic_fetcher.py is correctly implemented
+from traffic_fetcher import fetch_flow_data  # Assuming traffic_fetcher.py is correctly implemented
 
 # Register this page with Dash Pages
 dash.register_page(__name__, path="/map")
 
 # Fetch traffic data
 bounding_box = "13.08836,52.33812,13.761,52.6755"  # Berlin bounding box
-traffic_data = fetch_traffic_data(bounding_box)
+traffic_data = fetch_flow_data(bounding_box)
 
 if not traffic_data.empty:
     # Apply clustering using KMeans
