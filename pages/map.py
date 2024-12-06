@@ -50,7 +50,7 @@ if not traffic_data.empty:
         if not show_gray:
             data = data[data['dbscan_cluster'] != -1]  # data without the noise
 
-        m = folium.Map(location=[52.5200, 13.4050], zoom_start=10)
+        m = folium.Map(location=[52.4500, 13.4050], zoom_start=11)
         
         for _, row in data.iterrows():
             # kmeans color or noise/gray, default blue if error
@@ -76,7 +76,7 @@ if not traffic_data.empty:
 
     def create_clustered_heatmap(data):
         clustered_data = data[data['dbscan_cluster'] != -1]  # Exclude noise (-1 cluster)
-        m = folium.Map(location=[52.5200, 13.4050], zoom_start=10)
+        m = folium.Map(location=[52.4500, 13.4050], zoom_start=11)
         heat_data = [
             [row['lat'], row['lng'], row['jam_factor']]
             for _, row in clustered_data.iterrows()
@@ -86,7 +86,7 @@ if not traffic_data.empty:
         return m._repr_html_()
 
     def create_dot_map(data):
-        m = folium.Map(location=[52.5200, 13.4050], zoom_start=10)
+        m = folium.Map(location=[52.4500, 13.4050], zoom_start=11)
         for _, row in data.iterrows():
             popup_content = (
                 f"<b>Location:</b> {row['description']}<br>"
@@ -107,7 +107,7 @@ if not traffic_data.empty:
         return m._repr_html_()
 
     def create_heatmap(data):
-        m = folium.Map(location=[52.5200, 13.4050], zoom_start=10)
+        m = folium.Map(location=[52.4500, 13.4050], zoom_start=11)
         heat_data = [
             [row['lat'], row['lng'], row['jam_factor']]
             for _, row in data.iterrows()
@@ -156,6 +156,18 @@ layout = html.Div(
             style={"width": "50%", "margin": "auto"}
         ),
         html.Div(
+            id="map-container",
+            children=[
+                html.Iframe(
+                    id="map-iframe",
+                    srcDoc=preloaded_maps["clustered_dot_with_gray"],  # Default to clustered dot map with gray points
+                    width="100%",
+                    height="700"
+                )
+            ],
+            style={"margin": "auto", "width": "95%", "height": "75%"}
+        ),
+        html.Div(
             id="gray-points-toggle-container",
             children=[
                 dcc.Checklist(
@@ -167,18 +179,6 @@ layout = html.Div(
             ],
             style={"display": "block"}  # show toggle for noise points
         ),
-        html.Div(
-            id="map-container",
-            children=[
-                html.Iframe(
-                    id="map-iframe",
-                    srcDoc=preloaded_maps["clustered_dot_with_gray"],  # Default to clustered dot map with gray points
-                    width="100%",
-                    height="750"
-                )
-            ],
-            style={"margin": "auto", "width": "95%", "height": "75%"}
-        )
     ],
 )
 
