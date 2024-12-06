@@ -13,12 +13,12 @@ def fetch_flow_data(bounding_box):
     endpoint = "flow"
     params = {
         "apiKey": API_KEY,
-        "in": "bbox:"+bounding_box,
+        "in": "bbox:"+bounding_box, # location box
         "locationReferencing": "shape",
     }
     all_data = []
 
-    print(params)
+    # print(params)
     response = requests.get(base_url + endpoint, params=params)
     print(f"Fetching {endpoint} data: {response.status_code}")
     # print(response.json())
@@ -26,12 +26,12 @@ def fetch_flow_data(bounding_box):
         response_json = response.json()
 
         for result in response_json.get("results", []):
-            # Extract location and traffic details
+            # get location and FLOW!
             location = result.get("location", {})
             current_flow = result.get("currentFlow", {})
             shape = location.get("shape", {}).get("links", [{}])
 
-            # Add traffic data entry
+            # add to entry (row)
             traffic_entry = {
                 "type": endpoint,
                 "description": location.get("description", "Unknown Location"),
