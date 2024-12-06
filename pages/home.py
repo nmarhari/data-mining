@@ -14,7 +14,10 @@ layout = html.Div(className="home-header", children=[
         html.Div(className="home-links", children=[
             html.Ul([
                 html.Li([
-                    html.A(href="./map", className="home-button", children="Map")
+                    html.A(href="./flow", className="home-button", children="Traffic Flow Map")
+                ]),
+                html.Li([
+                    html.A(href="./incidents", className="home-button", children="Traffic Incident Map")
                 ])
             ])
         ]),
