@@ -11,6 +11,7 @@ This uses [HERE Technolgies Traffic API V7](https://www.here.com/docs/bundle/tra
 Note that some commands may differ based on operating system or version of software.
 In the `/functions` directory of the project:
 - Create a file `.env` and populate with `HERE_API_KEY='your-key'`
+
 In root directory of the project:
 - Run command: `py -m pip install -r requirements.txt`
 - Run command: `py app.py`
