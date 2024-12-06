@@ -3,6 +3,7 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 import json
+from datetime import datetime, timedelta, timezone
 
 load_dotenv()
 
@@ -49,4 +50,53 @@ def fetch_flow_data(bounding_box):
         print(f"Failed to fetch {endpoint} data: {response.status_code}")
         print(response.text)
     print("flow data fetched, passing...")
+    return pd.DataFrame(all_data)
+
+def fetch_incident_data(bounding_box):
+    base_url = "https://data.traffic.hereapi.com/v7/"
+    endpoint = "incidents"
+    params = {
+        "apiKey": API_KEY,
+        "in": "bbox:" + bounding_box,  # location box
+        "locationReferencing": "shape",
+    }
+    all_data = []
+    current_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+    cutoff_time = current_time - timedelta(hours=24)
+
+    response = requests.get(base_url + endpoint, params=params)
+    print(f"Fetching {endpoint} data: {response.status_code}")
+    if response.status_code == 200:
+        response_json = response.json()
+
+        for result in response_json.get("results", []):
+            location = result.get("location", {})
+            incident_details = result.get("incidentDetails", {})
+            shape = location.get("shape", {}).get("links", [{}])
+
+            # fix goofy timestamps
+            start_time_str = incident_details.get("startTime", "1970-01-01T00:00:00Z")
+            end_time_str = incident_details.get("endTime", "1970-01-01T00:00:00Z")
+            start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
+            end_time = datetime.fromisoformat(end_time_str.replace("Z", "+00:00"))
+            
+            # include cutoff for load time purposes
+            if end_time >= cutoff_time or start_time >= cutoff_time:
+                incident_entry = {
+                    "type": endpoint,
+                    "description": incident_details.get("description", {}).get("value", "Unknown Incident"),
+                    "criticality": incident_details.get("criticality", "Unknown"),
+                    "incident_type": incident_details.get("type", "Unknown"),
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "road_closed": incident_details.get("roadClosed", False),
+                    "lat": shape[0].get("points", [{}])[0].get("lat", 0) if shape else 0,
+                    "lng": shape[0].get("points", [{}])[0].get("lng", 0) if shape else 0,
+                }
+
+                all_data.append(incident_entry)
+    else:
+        print(f"Failed to fetch {endpoint} data: {response.status_code}")
+        print(response.text)
+    print("incident data fetched, passing...")
     return pd.DataFrame(all_data)

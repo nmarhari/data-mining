@@ -12,8 +12,8 @@ module_dir = os.path.join(current_dir, '../', 'functions')
 sys.path.append(module_dir)
 from traffic_fetcher import fetch_flow_data 
 
-dash.register_page(__name__, path="/map")
-print('\n\n@@ app start @@')
+dash.register_page(__name__, path="/flow")
+print('\n\n@@ start flow page @@')
 
 # fetch traffic data
 bounding_box = "13.08836,52.33812,13.761,52.6755"  # berlin germany (HERE api most data i think)
@@ -134,7 +134,7 @@ else:
         "dot": "<h3>No dot map data available.</h3>",
         "heatmap": "<h3>No heatmap data available.</h3>",
     }
-print("@@ app load complete @@")
+print("@@ flow load complete @@")
 
 layout = html.Div(
     [
