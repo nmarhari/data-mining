@@ -22,7 +22,7 @@ layout = html.Div(className="home-header", children=[
             ])
         ]),
 
-        html.P("Use any of the navigation link(s) to continue.")
+        html.P("Use any of the navigation links to continue.")
     ])
     
 ])

@@ -13,51 +13,46 @@ module_dir = os.path.join(current_dir, '../', 'functions')
 sys.path.append(module_dir)
 from traffic_fetcher import fetch_incident_data
 
-# Register incidents page
 dash.register_page(__name__, path="/incidents")
 print('\n\n@@ start incidents page @@')
 
-# Fetch incident data
 bounding_box = "13.08836,52.33812,13.761,52.6755"
 incident_data = fetch_incident_data(bounding_box)
 
 if not incident_data.empty:
-    # Ensure criticality mapping exists
+    # get and label criticality for clustering
     if 'criticality' in incident_data.columns:
         criticality_mapping = {"minor": 1, "moderate": 2, "major": 3}
         incident_data['criticality_value'] = incident_data['criticality'].map(criticality_mapping).fillna(0)
     else:
-        incident_data['criticality_value'] = 0  # Default criticality if missing
+        incident_data['criticality_value'] = 0  # default if missing (but shouldnt be)
 
-    # Keep a copy of original lat/lng for mapping
+    # keep lat and long so it does not get modified
     incident_data['original_lat'] = incident_data['lat']
     incident_data['original_lng'] = incident_data['lng']
 
-    # Normalize lat, lng, and criticality_value for clustering
+    # normalize the values used in clustering
     scaler = MinMaxScaler()
     incident_data[['lat', 'lng', 'criticality_value']] = scaler.fit_transform(
         incident_data[['lat', 'lng', 'criticality_value']]
     )
 
-    # Apply KMeans clustering
+    # cluster w kmeans
     kmeans = KMeans(n_clusters=3, random_state=0)
     incident_data['kmeans_cluster'] = kmeans.fit_predict(
         incident_data[['lat', 'lng', 'criticality_value']]
     )
 
-    # Apply DBSCAN clustering
+    # dbscan for noise etc
     dbscan = DBSCAN(eps=0.1, min_samples=3).fit(
         incident_data[['lat', 'lng', 'criticality_value']]
     )
     incident_data['dbscan_cluster'] = dbscan.labels_
 
-    # Predefine KMeans cluster colors
+    # predefine colors for display based on cluster it was put in
     kmeans_cluster_colors = {0: 'green', 1: 'orange', 2: 'red'}
 
-    print("Clustering Results:")
-    print(incident_data[['original_lat', 'original_lng', 'kmeans_cluster', 'dbscan_cluster']].head())
-
-    # Function to create a combined map (KMeans + DBSCAN with criticality colors)
+    # create clustered map with coloring based on which cluster it was in
     def create_combined_incident_map(data, show_gray=True):
         criticality_color_mapping = {
             "low": "green",
@@ -65,12 +60,12 @@ if not incident_data.empty:
             "major": "orange",
             "critical": "red",
         }
-        m = folium.Map(location=[52.5200, 13.4050], zoom_start=10)
+        m = folium.Map(location=[52.4500, 13.4050], zoom_start=11)
         for _, row in data.iterrows():
             if not show_gray and row['dbscan_cluster'] == -1:
-                continue  # Skip gray points if not showing noise
+                continue  # skip these points if toggle is off
 
-            # Use criticality color mapping
+            # use criticality for the coloring ( blue default if error)
             criticality_color = criticality_color_mapping.get(row['criticality'], 'blue')
             color = 'gray' if row['dbscan_cluster'] == -1 else criticality_color
 
@@ -87,7 +82,7 @@ if not incident_data.empty:
             popup = folium.Popup(popup_content, max_width=400, min_width=200)
             folium.CircleMarker(
                 location=[row['original_lat'], row['original_lng']],
-                radius=6,
+                radius=5,
                 color=color,
                 fill=True,
                 fill_opacity=0.7,
@@ -95,9 +90,9 @@ if not incident_data.empty:
             ).add_to(m)
         return m._repr_html_()
 
-    # Function to create a raw map with criticality colors
+    # raw map without color or clustering to show difference
     def create_raw_incident_map(data):
-        m = folium.Map(location=[52.5200, 13.4050], zoom_start=10)
+        m = folium.Map(location=[52.4500, 13.4050], zoom_start=11)
         for _, row in data.iterrows():
             color = 'blue'
 
@@ -111,7 +106,7 @@ if not incident_data.empty:
             popup = folium.Popup(popup_content, max_width=400, min_width=200)
             folium.CircleMarker(
                 location=[row['original_lat'], row['original_lng']],
-                radius=6,
+                radius=5,
                 color=color,
                 fill=True,
                 fill_opacity=0.7,
@@ -119,13 +114,13 @@ if not incident_data.empty:
             ).add_to(m)
         return m._repr_html_()
 
-    # Preload maps
+    # preload the maps so its speedy!
     preloaded_incident_maps = {
         "combined_with_gray": create_combined_incident_map(incident_data, show_gray=True),
         "combined_without_gray": create_combined_incident_map(incident_data, show_gray=False),
         "raw": create_raw_incident_map(incident_data),
     }
-else:
+else: # if errors or whatnot still shows page w/o crashing
     preloaded_incident_maps = {
         "combined_with_gray": "<h3>No incident data available for combined map with gray points.</h3>",
         "combined_without_gray": "<h3>No incident data available for combined map without gray points.</h3>",
@@ -134,9 +129,8 @@ else:
 
 layout = html.Div(
     [
-        html.Div(f"Total Incidents: {len(incident_data)}", style={"text-align": "center", "margin": "10px"}),
         html.H1([
-            html.A(id='text-center my3', children='Data Mining Techniques Group 5 - Incidents', href="/", style={"text-decoration": "none", "color": "white"})
+            html.A(id='text-center my3', children='Data Mining Techniques Group 5', href="/", style={"text-decoration": "none", "color": "white"})
         ], style={"text-decoration": "none"}),
         html.Div(
             dcc.Dropdown(
@@ -151,18 +145,6 @@ layout = html.Div(
             style={"width": "50%", "margin": "auto"}
         ),
         html.Div(
-            id="gray-points-toggle-container-incidents",
-            children=[
-                dcc.Checklist(
-                    id="gray-points-toggle-incidents",
-                    options=[{"label": "Show Gray Points (Noise)", "value": "show_gray"}],
-                    value=["show_gray"],  # Default: show gray points
-                    style={"margin": "auto", "text-align": "center"}
-                )
-            ],
-            style={"display": "block"}
-        ),
-        html.Div(
             id="incident-map-container",
             children=[
                 html.Iframe(
@@ -173,7 +155,19 @@ layout = html.Div(
                 )
             ],
             style={"margin": "auto", "width": "95%", "height": "75%"}
-        )
+        ),
+        html.Div(
+            id="gray-points-toggle-container-incidents",
+            children=[
+                dcc.Checklist(
+                    id="gray-points-toggle-incidents",
+                    options=[{"label": "Show Gray Points (Noise)", "value": "show_gray"}],
+                    value=[""],  # default to not showing gray points
+                    style={"margin": "auto", "text-align": "center"}
+                )
+            ],
+            style={"display": "block"}
+        ),
     ],
 )
 
@@ -188,8 +182,8 @@ def update_incident_map(selected_view, gray_toggle):
     if selected_view == "combined":
         return (
             preloaded_incident_maps["combined_with_gray"] if show_gray else preloaded_incident_maps["combined_without_gray"],
-            {"display": "block"}  # Show toggle
+            {"display": "block"}  # show the toggle on block, otherwise none for hiding
         )
     elif selected_view == "raw":
-        return preloaded_incident_maps["raw"], {"display": "none"}  # Hide toggle for raw map
+        return preloaded_incident_maps["raw"], {"display": "none"}  # hide the toggle on none
     return "<h3>No data available for the selected view.</h3>", {"display": "none"}
