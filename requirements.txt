@@ -6,4 +6,3 @@ pandas
 scikit-learn
 requests
 python-dotenv
-json
